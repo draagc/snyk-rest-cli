@@ -1,17 +1,24 @@
-import { addIntegrationType, myCustomArgv } from "./helper.js";
+import {
+  addIntegrationType,
+  myCustomArgv
+} from "./helper.js";
 import {
   paginationForDeleteEmptyTargetsInOrg,
   paginationForGetAllIntegrationsInOrg,
   paginationForGetAllOrgsGroup,
   paginationForGetIssuesCount,
 } from "./pagination.js";
-import { echo, chalk, spinner } from "zx";
+import {
+  echo,
+  chalk,
+  spinner
+} from "zx";
 let orgIds = [];
 
 export async function getAllIntegrationsInOrg() {
   try {
     // first get all orgs id in a group
-    await getAllOrgsGroup();
+    await getOrgs();
     if (orgIds && orgIds.length > 0) {
       // then get all target and their integrations
       for (const orgId of orgIds) {
@@ -22,8 +29,7 @@ export async function getAllIntegrationsInOrg() {
             myCustomArgv.source_types
               ? `&source_types=${myCustomArgv.source_types}`
               : ""
-          }`,
-          {
+          }`, {
             method: "GET",
             headers: {
               accept: "application/vnd.api+json",
@@ -54,7 +60,9 @@ export async function getAllIntegrationsInOrg() {
         if (data.data.length > 0) {
           for (const target of data.data) {
             const integration = target.relationships.integration.data;
-            const { integration_type: type } = integration.attributes;
+            const {
+              integration_type: type
+            } = integration.attributes;
             const id = integration.id;
             if (addIntegrationType(type, id)) {
               echo(
@@ -78,13 +86,16 @@ export async function getAllIntegrationsInOrg() {
   }
 }
 
-export async function getAllOrgsGroup() {
+async function getOrg() {
+
+}
+
+export async function getOrgs() {
   if (myCustomArgv.snyk_token) {
     if (myCustomArgv.group_id && myCustomArgv.api_version) {
       try {
         const response = await fetch(
-          `https://api.snyk.io/rest/groups/${myCustomArgv.group_id}/orgs?version=${myCustomArgv.api_version}`,
-          {
+          `https://api.snyk.io/rest/groups/${myCustomArgv.group_id}/orgs?version=${myCustomArgv.api_version}`, {
             method: "GET",
             headers: {
               accept: "application/vnd.api+json",
@@ -130,6 +141,35 @@ export async function getAllOrgsGroup() {
         echo(`Fetch error: ${error.message}`);
         console.error(error);
       }
+    } else if (myCustomArgv.org_id) {
+
+      const response = await fetch(
+        `https://api.snyk.io/rest/orgs/${myCustomArgv.org_id}?version=${myCustomArgv.api_version}`, {
+          method: "GET",
+          headers: {
+            accept: "application/vnd.api+json",
+            authorization: `TOKEN ${myCustomArgv.snyk_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+
+        const errorText = await response.text();
+        echo(
+          chalk.red(
+            `HTTP error! Status: ${
+                response.status
+              }, Response: ${JSON.stringify(errorText)}`
+          )
+        );
+        return;
+      }
+      const resBody = await response.json();
+      orgIds.push(resBody.data.id);
+      echo(
+        chalk.yellowBright(`Organization ID: ${chalk.greenBright(resBody.data.id)}`)
+      );
     } else {
       echo(
         chalk.red(
@@ -145,13 +185,12 @@ export async function getAllOrgsGroup() {
 export async function deleteEmptyTargets() {
   // first check if the target has any projects
   try {
-    await getAllOrgsGroup();
+    await getOrgs();
     if (orgIds && orgIds.length > 0) {
       // then get all target
       for (const orgId of orgIds) {
         const response = await fetch(
-          `https://api.snyk.io/rest/orgs/${orgId}/targets?version=${myCustomArgv.api_version}&exclude_empty=false`,
-          {
+          `https://api.snyk.io/rest/orgs/${orgId}/targets?version=${myCustomArgv.api_version}&exclude_empty=false`, {
             method: "GET",
             headers: {
               accept: "application/vnd.api+json",
@@ -188,8 +227,7 @@ export async function deleteEmptyTargets() {
             );
             try {
               const response = await fetch(
-                `https://api.snyk.io/rest/orgs/${orgId}/projects?target_id=${target.id}&version=${myCustomArgv.api_version}`,
-                {
+                `https://api.snyk.io/rest/orgs/${orgId}/projects?target_id=${target.id}&version=${myCustomArgv.api_version}`, {
                   method: "GET",
                   headers: {
                     accept: "application/vnd.api+json",
@@ -217,15 +255,14 @@ export async function deleteEmptyTargets() {
                 //call delete api here
                 try {
                   await fetch(
-                    `https://api.snyk.io/rest/orgs/${orgId}/targets/${target.id}?version=${myCustomArgv.api_version}`,
-                    {
-                      method: "DELETE",
-                      headers: {
-                        accept: "application/vnd.api+json",
-                        authorization: `TOKEN ${myCustomArgv.snyk_token}`,
-                      },
-                    }
-                  )
+                      `https://api.snyk.io/rest/orgs/${orgId}/targets/${target.id}?version=${myCustomArgv.api_version}`, {
+                        method: "DELETE",
+                        headers: {
+                          accept: "application/vnd.api+json",
+                          authorization: `TOKEN ${myCustomArgv.snyk_token}`,
+                        },
+                      }
+                    )
                     .then(async (response) => {
                       if (response.status == 204) {
                         echo(
@@ -288,13 +325,12 @@ export async function updateSnykCode() {
       myCustomArgv.sast_enabled === "true" ||
       myCustomArgv.sast_enabled === "false"
     ) {
-      await getAllOrgsGroup();
+      await getOrgs();
 
       if (orgIds && orgIds.length > 0) {
         for (const orgId of orgIds) {
           const response = await fetch(
-            `https://api.snyk.io/rest/orgs/${orgId}/settings/sast?version=${myCustomArgv.api_version}`,
-            {
+            `https://api.snyk.io/rest/orgs/${orgId}/settings/sast?version=${myCustomArgv.api_version}`, {
               method: "GET",
               headers: {
                 accept: "application/vnd.api+json",
@@ -332,25 +368,24 @@ export async function updateSnykCode() {
               );
               try {
                 await fetch(
-                  `https://api.snyk.io/rest/orgs/${orgId}/settings/sast?version=${myCustomArgv.api_version}`,
-                  {
-                    method: "PATCH",
-                    headers: {
-                      accept: "application/vnd.api+json",
-                      authorization: `TOKEN ${myCustomArgv.snyk_token}`,
-                      "Content-Type": "application/vnd.api+json",
-                    },
-                    body: JSON.stringify({
-                      data: {
-                        attributes: {
-                          sast_enabled: true,
-                        },
-                        id: `${orgId}`,
-                        type: "string",
+                    `https://api.snyk.io/rest/orgs/${orgId}/settings/sast?version=${myCustomArgv.api_version}`, {
+                      method: "PATCH",
+                      headers: {
+                        accept: "application/vnd.api+json",
+                        authorization: `TOKEN ${myCustomArgv.snyk_token}`,
+                        "Content-Type": "application/vnd.api+json",
                       },
-                    }),
-                  }
-                )
+                      body: JSON.stringify({
+                        data: {
+                          attributes: {
+                            sast_enabled: true,
+                          },
+                          id: `${orgId}`,
+                          type: "string",
+                        },
+                      }),
+                    }
+                  )
                   .then(async (response) => {
                     if (response.status == 201) {
                       echo(
@@ -388,25 +423,24 @@ export async function updateSnykCode() {
               );
               try {
                 await fetch(
-                  `https://api.snyk.io/rest/orgs/${orgId}/settings/sast?version=${myCustomArgv.api_version}`,
-                  {
-                    method: "PATCH",
-                    headers: {
-                      accept: "application/vnd.api+json",
-                      authorization: `TOKEN ${myCustomArgv.snyk_token}`,
-                      "Content-Type": "application/vnd.api+json",
-                    },
-                    body: JSON.stringify({
-                      data: {
-                        attributes: {
-                          sast_enabled: false,
-                        },
-                        id: `${orgId}`,
-                        type: "string",
+                    `https://api.snyk.io/rest/orgs/${orgId}/settings/sast?version=${myCustomArgv.api_version}`, {
+                      method: "PATCH",
+                      headers: {
+                        accept: "application/vnd.api+json",
+                        authorization: `TOKEN ${myCustomArgv.snyk_token}`,
+                        "Content-Type": "application/vnd.api+json",
                       },
-                    }),
-                  }
-                )
+                      body: JSON.stringify({
+                        data: {
+                          attributes: {
+                            sast_enabled: false,
+                          },
+                          id: `${orgId}`,
+                          type: "string",
+                        },
+                      }),
+                    }
+                  )
                   .then(async (response) => {
                     if (response.status == 201) {
                       echo(
@@ -448,14 +482,13 @@ export async function updateSnykCode() {
 
 export async function getIssuesCount() {
   try {
-    await getAllOrgsGroup();
+    await getOrgs();
 
     if (orgIds && orgIds.length > 0) {
       await Promise.all(
         orgIds.map(async (orgId) => {
           const response = await fetch(
-            `https://api.snyk.io/rest/orgs/${orgId}/issues?version=${myCustomArgv.api_version}&limit=100`,
-            {
+            `https://api.snyk.io/rest/orgs/${orgId}/issues?version=${myCustomArgv.api_version}&limit=100`, {
               method: "GET",
               headers: {
                 accept: "application/vnd.api",
@@ -482,7 +515,7 @@ export async function getIssuesCount() {
           let highIssueCount = 0;
           let criticalIssueCount = 0;
 
-          await (spinner(chalk.red(`Calculating number of issues for org ${orgId}`),async()=>{
+          await (spinner(chalk.red(`Calculating number of issues for org ${orgId}`), async () => {
             for (const issue of issues) {
               switch (issue.attributes.effective_severity_level) {
                 case "low":
@@ -499,7 +532,7 @@ export async function getIssuesCount() {
                   break;
               }
             }
-  
+
             if (data.links.next) {
               await paginationForGetIssuesCount(
                 data.links.next,
@@ -520,7 +553,7 @@ export async function getIssuesCount() {
             }
           }))
 
-         
+
         })
       );
     }

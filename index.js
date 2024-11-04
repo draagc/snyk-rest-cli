@@ -1,28 +1,39 @@
 #!/usr/bin/env node
-import { echo } from "zx";
-import { myCustomArgv, readHelp } from "./helper.js";
-import { deleteEmptyTargets, getAllIntegrationsInOrg, getAllOrgsGroup, getIssuesCount, updateSnykCode } from "./api.js";
 
-const cliVersion = "5.0.0";
+import {
+  echo
+} from "zx";
+import {
+  myCustomArgv,
+  readHelp
+} from "./helper.js";
+import {
+  deleteEmptyTargets,
+  getAllIntegrationsInOrg,
+  getOrgs,
+  getIssuesCount,
+  updateSnykCode
+} from "./api.js";
+
+const cliVersion = "6.0.0";
 
 
 (async () => {
   if (myCustomArgv.help || myCustomArgv.h) {
     readHelp();
   } else if (myCustomArgv.get_all_orgs_group) {
-    getAllOrgsGroup();
+    getOrgs();
   } else if (myCustomArgv.get_all_integrations_org) {
     getAllIntegrationsInOrg();
   } else if (myCustomArgv.version || myCustomArgv.v) {
     echo(`${cliVersion}`);
-  } else if (myCustomArgv.delete_empty_targets){
+  } else if (myCustomArgv.delete_empty_targets) {
     deleteEmptyTargets();
-  } else if (myCustomArgv.update_snyk_code_orgs){
+  } else if (myCustomArgv.update_snyk_code_orgs) {
     updateSnykCode();
-  } else if (myCustomArgv.get_all_org_issues){
+  } else if (myCustomArgv.get_all_org_issues) {
     getIssuesCount();
-  }
-   else {
+  } else {
     echo(`invalid command!`);
   }
 })();

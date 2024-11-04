@@ -1,11 +1,17 @@
-import { echo, fs, minimist } from "zx";
+import {
+  echo,
+  fs,
+  minimist
+} from "zx";
 import path from "path";
-import { fileURLToPath } from "url";
+import {
+  fileURLToPath
+} from "url";
 import renderMarkdown from "./markdown-render.js";
 const integrationTypes = new Set();
 
 export const addIntegrationType = (type, integrationId) => {
-  
+
   const key = `${type}-${integrationId}`;
   if (!integrationTypes.has(key)) {
     integrationTypes.add(key);
@@ -15,7 +21,8 @@ export const addIntegrationType = (type, integrationId) => {
 };
 
 export function readHelp() {
-  const __filename = fileURLToPath(import.meta.url);
+  const __filename = fileURLToPath(
+    import.meta.url);
   const __dirname = path.dirname(__filename);
   const helpFilePath = path.join(__dirname, "README.md");
   const helpMD = fs.readFileSync(helpFilePath, "utf8");
@@ -25,6 +32,7 @@ export function readHelp() {
 export const myCustomArgv = minimist(process.argv.slice(2), {
   string: [
     "group_id",
+    "org_id",
     "api_version",
     "snyk_token",
     "starting_after",
