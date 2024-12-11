@@ -584,7 +584,7 @@ async function paginateSnykCall(...args) {
   return results;
 }
 
-async function deleteTarget(target_id) {
+async function deleteTarget(target_id, orgId) {
   return fetch(
       `https://api.snyk.io/rest/orgs/${orgId}/targets/${target_id}?version=${myCustomArgv.api_version}`, {
         method: "DELETE",
@@ -598,13 +598,13 @@ async function deleteTarget(target_id) {
       if (response.status == 204) {
         echo(
           `${chalk.greenBright(
-                            target.id
+                            target_id
                           )} is sucessfully deleted`
         );
       } else {
         echo(
           chalk.redBright(
-            `We have trouble deleting ${target.id} from ${orgId}`
+            `We have trouble deleting ${target_id} from ${orgId}`
           )
         );
       }
@@ -622,11 +622,10 @@ export async function deleteTargetsCreatedAfter() {
 
     const targets = await paginateSnykCall(
       "GET",
-      `/orgs/${orgId}/targets?version=${myCustomArgv.api_version}&created_gte=${date.toISOString()}`
+      `/orgs/${orgId}/targets?version=${myCustomArgv.api_version}&created_gte=${encodeURIComponent(date.toISOString())}`
     );
-
     for (const target of targets) {
-      await deleteTarget(target.id);
+      await deleteTarget(target.id, orgId);
     }
 
     echo(chalk.greenBright(`Successfully deleted ${targets.length} targets`));
