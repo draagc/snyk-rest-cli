@@ -37,7 +37,8 @@ export const myCustomArgv = minimist(process.argv.slice(2), {
     "snyk_token",
     "starting_after",
     "source_types",
-    "sast_enabled"
+    "sast_enabled",
+    "created_date"
   ],
   boolean: [
     "help",
@@ -47,6 +48,7 @@ export const myCustomArgv = minimist(process.argv.slice(2), {
     "get_all_integrations_org",
     "delete_empty_targets",
     "update_snyk_code_orgs",
-    "get_all_orgs_issues"
+    "get_all_orgs_issues",
+    "delete_targets_created_after"
   ],
 });

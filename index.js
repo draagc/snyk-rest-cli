@@ -12,7 +12,8 @@ import {
   getAllIntegrationsInOrg,
   getOrgs,
   getIssuesCount,
-  updateSnykCode
+  updateSnykCode,
+  deleteTargetsCreatedAfter
 } from "./api.js";
 
 const cliVersion = "6.0.0";
@@ -33,6 +34,8 @@ const cliVersion = "6.0.0";
     updateSnykCode();
   } else if (myCustomArgv.get_all_org_issues) {
     getIssuesCount();
+  } else if (myCustomArgv.delete_targets_created_after) {
+    deleteTargetsCreatedAfter();
   } else {
     echo(`invalid command!`);
   }

@@ -254,34 +254,7 @@ export async function deleteEmptyTargets() {
 
                 //call delete api here
                 try {
-                  await fetch(
-                      `https://api.snyk.io/rest/orgs/${orgId}/targets/${target.id}?version=${myCustomArgv.api_version}`, {
-                        method: "DELETE",
-                        headers: {
-                          accept: "application/vnd.api+json",
-                          authorization: `TOKEN ${myCustomArgv.snyk_token}`,
-                        },
-                      }
-                    )
-                    .then(async (response) => {
-                      if (response.status == 204) {
-                        echo(
-                          `${chalk.greenBright(
-                            target.id
-                          )} is sucessfully deleted`
-                        );
-                      } else {
-                        echo(
-                          chalk.redBright(
-                            `We have trouble deleting ${target.id} from ${orgId}`
-                          )
-                        );
-                      }
-                    })
-                    .catch((error) => {
-                      echo(chalk.red(`Delete error: ${error.message}`));
-                      console.error(error);
-                    });
+                  await deleteTarget(target.id);
                 } catch (error) {
                   echo(chalk.red(`Delete error: ${error.message}`));
                   console.error(error);
@@ -560,5 +533,105 @@ export async function getIssuesCount() {
   } catch (error) {
     echo(`Fetch error: ${error.message}`);
     console.error(error);
+  }
+}
+async function snykCall(method, path, body) {
+  const response = await fetch(
+    `https://api.snyk.io/rest/${path}`, {
+      method: method,
+      headers: {
+        accept: "application/vnd.api+json",
+        authorization: `TOKEN ${myCustomArgv.snyk_token}`,
+      },
+      body,
+    }
+  );
+  if (!response.ok) {
+    const errorText = await response.json();
+    echo(
+      chalk.red(
+        `HTTP error! Status: ${
+                  response.status
+                }, Response: ${JSON.stringify(errorText)}`
+      )
+    );
+    return;
+  }
+  return response.json();
+}
+
+async function paginateSnykCall(...args) {
+  const results = [];
+  let response = await snykCall(...args);
+
+  // Add initial response data
+  results.push(...response.data);
+
+  // Continue fetching while there's a next page
+  while (response.links?.next) {
+    // Extract the next URL and make the call
+    const nextUrl = new URL(response.links.next);
+    const pathWithQuery = nextUrl.pathname.replace('/rest/', '') + nextUrl.search;
+    response = await snykCall('GET', pathWithQuery);
+
+    if (!response?.data) {
+      break;
+    }
+
+    results.push(...response.data);
+  }
+
+  return results;
+}
+
+async function deleteTarget(target_id) {
+  return fetch(
+      `https://api.snyk.io/rest/orgs/${orgId}/targets/${target_id}?version=${myCustomArgv.api_version}`, {
+        method: "DELETE",
+        headers: {
+          accept: "application/vnd.api+json",
+          authorization: `TOKEN ${myCustomArgv.snyk_token}`,
+        },
+      }
+    )
+    .then(async (response) => {
+      if (response.status == 204) {
+        echo(
+          `${chalk.greenBright(
+                            target.id
+                          )} is sucessfully deleted`
+        );
+      } else {
+        echo(
+          chalk.redBright(
+            `We have trouble deleting ${target.id} from ${orgId}`
+          )
+        );
+      }
+    })
+    .catch((error) => {
+      echo(chalk.red(`Delete error: ${error.message}`));
+      console.error(error);
+    });
+}
+
+export async function deleteTargetsCreatedAfter() {
+  try {
+    const date = new Date(Date.parse(myCustomArgv.created_date));
+    const orgId = myCustomArgv.org_id;
+
+    const targets = await paginateSnykCall(
+      "GET",
+      `/orgs/${orgId}/targets?version=${myCustomArgv.api_version}&created_gte=${date.toISOString()}`
+    );
+
+    for (const target of targets) {
+      await deleteTarget(target.id);
+    }
+
+    echo(chalk.greenBright(`Successfully deleted ${targets.length} targets`));
+  } catch (e) {
+    echo(chalk.redBright('Error deleting targets:', e));
+    throw e;
   }
 }
